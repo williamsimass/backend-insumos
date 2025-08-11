@@ -23,7 +23,19 @@ app.get("/insumos", (req, res) => {
 
 // Rota para adicionar um novo insumo
 app.post("/insumos", (req, res) => {
-  const { dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor } = req.body;
+  const {
+    dataSolicitacao,
+    dataAprovacao,
+    aprovadoPor,
+    solicitante,
+    centroCusto,
+    equipamento,
+    status,
+    numeroChamado,
+    equipamentoQuantidade,
+    valor
+  } = req.body;
+  
   const id = uuidv4();
 
   if (!solicitante || !centroCusto) {
@@ -33,8 +45,19 @@ app.post("/insumos", (req, res) => {
   const stmt = db.prepare(
     "INSERT INTO insumos (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   );
+  
   stmt.run(
-    id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor,
+    id,
+    dataSolicitacao,
+    dataAprovacao,
+    aprovadoPor,
+    solicitante,
+    centroCusto,
+    equipamento,
+    status,
+    numeroChamado,
+    equipamentoQuantidade,
+    valor,
     function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -43,13 +66,25 @@ app.post("/insumos", (req, res) => {
       res.status(201).json({ id: id, message: "Insumo adicionado com sucesso!" });
     }
   );
+  
   stmt.finalize();
 });
 
 // Rota para atualizar um insumo existente
 app.put("/insumos/:id", (req, res) => {
   const { id } = req.params;
-  const { dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor } = req.body;
+  const {
+    dataSolicitacao,
+    dataAprovacao,
+    aprovadoPor,
+    solicitante,
+    centroCusto,
+    equipamento,
+    status,
+    numeroChamado,
+    equipamentoQuantidade,
+    valor
+  } = req.body;
 
   if (!solicitante || !centroCusto) {
     return res.status(400).json({ error: "Solicitante e Centro de Custo são obrigatórios." });
@@ -58,8 +93,19 @@ app.put("/insumos/:id", (req, res) => {
   const stmt = db.prepare(
     "UPDATE insumos SET dataSolicitacao = ?, dataAprovacao = ?, aprovadoPor = ?, solicitante = ?, centroCusto = ?, equipamento = ?, status = ?, numeroChamado = ?, equipamentoQuantidade = ?, valor = ? WHERE id = ?"
   );
+  
   stmt.run(
-    dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor, id,
+    dataSolicitacao,
+    dataAprovacao,
+    aprovadoPor,
+    solicitante,
+    centroCusto,
+    equipamento,
+    status,
+    numeroChamado,
+    equipamentoQuantidade,
+    valor,
+    id,
     function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -72,6 +118,7 @@ app.put("/insumos/:id", (req, res) => {
       }
     }
   );
+  
   stmt.finalize();
 });
 
@@ -92,7 +139,11 @@ app.delete("/insumos/:id", (req, res) => {
   });
 });
 
+// Rota leve para monitoramento do UptimeRobot
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor backend rodando na porta ${PORT}`);
 });
-
