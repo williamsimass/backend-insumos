@@ -1,7 +1,7 @@
 {
   "name": "insumos-backend",
   "version": "1.0.0",
-  "description": "Backend para o gerenciador de insumos",
+  "description": "",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -11,13 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
     "sqlite3": "^5.1.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5"
+    "uuid": "^9.0.1"  // <--- CERTIFIQUE-SE QUE ESTÁ AQUI
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
   }
 }
-
