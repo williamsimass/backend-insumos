@@ -21,70 +21,50 @@ app.get("/insumos", (req, res) => {
   });
 });
 
-// Rota para adicionar um novo insumo
-app.post("/insumos", (req, res) => {
-  const {
-    dataSolicitacao,
-    dataAprovacao,
-    aprovadoPor,
-    solicitante,
-    centroCusto,
-    equipamento,
-    status,
-    numeroChamado,
-    equipamentoQuantidade,
-    valor
-  } = req.body;
-  
-  const id = uuidv4();
-
-  if (!solicitante || !centroCusto) {
-    return res.status(400).json({ error: "Solicitante e Centro de Custo são obrigatórios." });
+// Rota para importar múltiplos insumos
+app.post("/insumos/import", (req, res) => {
+  const insumosToImport = req.body; // Espera um array de insumos
+  if (!Array.isArray(insumosToImport)) {
+    return res.status(400).json({ error: "O corpo da requisição deve ser um array de insumos." });
   }
 
-  const stmt = db.prepare(
-    "INSERT INTO insumos (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  
-  stmt.run(
-    id,
-    dataSolicitacao,
-    dataAprovacao,
-    aprovadoPor,
-    solicitante,
-    centroCusto,
-    equipamento,
-    status,
-    numeroChamado,
-    equipamentoQuantidade,
-    valor,
-    function (err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.status(201).json({ id: id, message: "Insumo adicionado com sucesso!" });
+  db.serialize(() => {
+    db.run("BEGIN TRANSACTION;");
+    const stmt = db.prepare(
+      "INSERT INTO insumos (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
+
+    let importedCount = 0;
+    for (const insumo of insumosToImport) {
+      const id = insumo.id || uuidv4(); // Usa ID existente ou gera um novo
+      stmt.run(
+        id, insumo.dataSolicitacao, insumo.dataAprovacao, insumo.aprovadoPor, insumo.solicitante, insumo.centroCusto, insumo.equipamento, insumo.status, insumo.numeroChamado, insumo.equipamentoQuantidade, insumo.valor,
+        function (err) {
+          if (err) {
+            console.error("Erro ao importar insumo:", err.message);
+            // Você pode adicionar lógica para lidar com erros individuais aqui
+          } else {
+            importedCount++;
+          }
+        }
+      );
     }
-  );
-  
-  stmt.finalize();
+    stmt.finalize();
+    db.run("COMMIT;", (err) => {
+      if (err) {
+        res.status(500).json({ error: "Erro ao finalizar transação de importação: " + err.message });
+      } else {
+        res.status(200).json({ message: `Importados ${importedCount} insumos com sucesso!` });
+      }
+    });
+  });
 });
+
 
 // Rota para atualizar um insumo existente
 app.put("/insumos/:id", (req, res) => {
   const { id } = req.params;
-  const {
-    dataSolicitacao,
-    dataAprovacao,
-    aprovadoPor,
-    solicitante,
-    centroCusto,
-    equipamento,
-    status,
-    numeroChamado,
-    equipamentoQuantidade,
-    valor
-  } = req.body;
+  const { dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor } = req.body;
 
   if (!solicitante || !centroCusto) {
     return res.status(400).json({ error: "Solicitante e Centro de Custo são obrigatórios." });
@@ -93,19 +73,8 @@ app.put("/insumos/:id", (req, res) => {
   const stmt = db.prepare(
     "UPDATE insumos SET dataSolicitacao = ?, dataAprovacao = ?, aprovadoPor = ?, solicitante = ?, centroCusto = ?, equipamento = ?, status = ?, numeroChamado = ?, equipamentoQuantidade = ?, valor = ? WHERE id = ?"
   );
-  
   stmt.run(
-    dataSolicitacao,
-    dataAprovacao,
-    aprovadoPor,
-    solicitante,
-    centroCusto,
-    equipamento,
-    status,
-    numeroChamado,
-    equipamentoQuantidade,
-    valor,
-    id,
+    dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor, id,
     function (err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -118,7 +87,6 @@ app.put("/insumos/:id", (req, res) => {
       }
     }
   );
-  
   stmt.finalize();
 });
 
@@ -139,11 +107,7 @@ app.delete("/insumos/:id", (req, res) => {
   });
 });
 
-// Rota leve para monitoramento do UptimeRobot
-app.get("/ping", (req, res) => {
-  res.send("pong");
-});
-
 app.listen(PORT, () => {
   console.log(`Servidor backend rodando na porta ${PORT}`);
 });
+
