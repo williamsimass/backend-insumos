@@ -12,15 +12,15 @@ const pool = new Pool({
     await pool.query(`
       CREATE TABLE IF NOT EXISTS insumos (
         id TEXT PRIMARY KEY,
-        data_solicitacao TEXT,
-        data_aprovacao TEXT,
-        aprovado_por TEXT,
+        dataSolicitacao TEXT,
+        dataAprovacao TEXT,
+        aprovadoPor TEXT,
         solicitante TEXT NOT NULL,
-        centro_custo TEXT NOT NULL,
+        centroCusto TEXT NOT NULL,
         equipamento TEXT,
         status TEXT,
-        numero_chamado TEXT,
-        equipamento_quantidade TEXT,
+        numeroChamado TEXT,
+        equipamentoQuantidade TEXT,
         valor REAL
       );
     `);
