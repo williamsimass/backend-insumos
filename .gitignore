@@ -1,0 +1,14 @@
+# Arquivos de ambiente
+.env
+
+# Dependências
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Banco SQLite antigo
+*.sqlite
+*.sqlite-journal
