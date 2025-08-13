@@ -1,10 +1,8 @@
-// database.js
 require("dotenv").config();
 const { Pool } = require("pg");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Em produção (Render), geralmente precisa de SSL:
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
@@ -14,15 +12,15 @@ const pool = new Pool({
     await pool.query(`
       CREATE TABLE IF NOT EXISTS insumos (
         id TEXT PRIMARY KEY,
-        dataSolicitacao TEXT,
-        dataAprovacao TEXT,
-        aprovadoPor TEXT,
+        data_solicitacao TEXT,
+        data_aprovacao TEXT,
+        aprovado_por TEXT,
         solicitante TEXT NOT NULL,
-        centroCusto TEXT NOT NULL,
+        centro_custo TEXT NOT NULL,
         equipamento TEXT,
         status TEXT,
-        numeroChamado TEXT,
-        equipamentoQuantidade TEXT,
+        numero_chamado TEXT,
+        equipamento_quantidade TEXT,
         valor REAL
       );
     `);
