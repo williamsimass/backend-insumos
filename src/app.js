@@ -13,7 +13,22 @@ app.use(express.json());
 // GET /insumos
 app.get("/insumos", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM insumos ORDER BY dataSolicitacao ASC");
+    const result = await pool.query(`
+      SELECT 
+        id,
+        dataSolicitacao AS "dataSolicitacao",
+        dataAprovacao AS "dataAprovacao", 
+        aprovadoPor AS "aprovadoPor",
+        solicitante,
+        centroCusto AS "centroCusto",
+        equipamento,
+        status,
+        numeroChamado AS "numeroChamado",
+        equipamentoQuantidade AS "equipamentoQuantidade",
+        valor
+      FROM insumos 
+      ORDER BY dataSolicitacao ASC
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
