@@ -1,4 +1,3 @@
-// app.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -11,12 +10,26 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// GET /insumos - lista todos, ordenado por data_solicitacao crescente
+// GET /insumos - lista (ordenado pela data_solicitacao crescente)
 app.get("/insumos", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM insumos ORDER BY data_solicitacao ASC");
-    res.json(result.rows);
+    const insumos = result.rows.map(row => ({
+      id: row.id,
+      dataSolicitacao: row.data_solicitacao,
+      dataAprovacao: row.data_aprovacao,
+      aprovadoPor: row.aprovado_por,
+      solicitante: row.solicitante,
+      centroCusto: row.centro_custo,
+      equipamento: row.equipamento,
+      status: row.status,
+      numeroChamado: row.numero_chamado,
+      equipamentoQuantidade: row.equipamento_quantidade,
+      valor: row.valor
+    }));
+    res.json(insumos);
   } catch (err) {
+    console.error("Erro ao buscar insumos:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -86,6 +99,7 @@ app.post("/insumos/import", async (req, res) => {
     }
     res.status(200).json({ message: "Importação concluída com sucesso!" });
   } catch (err) {
+    console.error("Erro ao importar insumos:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -120,7 +134,7 @@ app.put("/insumos/:id", async (req, res) => {
   }
 });
 
-// DELETE /insumos/:id - remove
+// DELETE /insumos/:id - remove insumo específico
 app.delete("/insumos/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -132,11 +146,11 @@ app.delete("/insumos/:id", async (req, res) => {
   }
 });
 
-// DELETE /insumos/clear - limpa todos os registros (temporário)
-app.delete("/insumos/clear", async (req, res) => {
+// DELETE /insumos - remove todos os insumos
+app.delete("/insumos", async (req, res) => {
   try {
     await pool.query("DELETE FROM insumos");
-    res.json({ message: "Todos os registros foram deletados!" });
+    res.json({ message: "Todos os insumos foram deletados com sucesso!" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
