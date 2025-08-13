@@ -11,10 +11,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// GET /insumos - lista (ordenado pela dataSolicitacao crescente)
+// GET /insumos - lista todos, ordenado por data_solicitacao crescente
 app.get("/insumos", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM insumos ORDER BY dataSolicitacao ASC");
+    const result = await pool.query("SELECT * FROM insumos ORDER BY data_solicitacao ASC");
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -44,7 +44,7 @@ app.post("/insumos", async (req, res) => {
   try {
     await pool.query(
       `INSERT INTO insumos 
-       (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor)
+       (id, data_solicitacao, data_aprovacao, aprovado_por, solicitante, centro_custo, equipamento, status, numero_chamado, equipamento_quantidade, valor)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor]
     );
@@ -66,7 +66,7 @@ app.post("/insumos/import", async (req, res) => {
       const id = insumo.id || uuidv4();
       await pool.query(
         `INSERT INTO insumos 
-         (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor)
+         (id, data_solicitacao, data_aprovacao, aprovado_por, solicitante, centro_custo, equipamento, status, numero_chamado, equipamento_quantidade, valor)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          ON CONFLICT (id) DO NOTHING`,
         [
@@ -109,7 +109,7 @@ app.put("/insumos/:id", async (req, res) => {
   try {
     const result = await pool.query(
       `UPDATE insumos 
-       SET dataSolicitacao=$1, dataAprovacao=$2, aprovadoPor=$3, solicitante=$4, centroCusto=$5, equipamento=$6, status=$7, numeroChamado=$8, equipamentoQuantidade=$9, valor=$10
+       SET data_solicitacao=$1, data_aprovacao=$2, aprovado_por=$3, solicitante=$4, centro_custo=$5, equipamento=$6, status=$7, numero_chamado=$8, equipamento_quantidade=$9, valor=$10
        WHERE id=$11`,
       [dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor, id]
     );
@@ -127,6 +127,16 @@ app.delete("/insumos/:id", async (req, res) => {
     const result = await pool.query("DELETE FROM insumos WHERE id=$1", [id]);
     if (result.rowCount === 0) return res.status(404).json({ message: "Insumo não encontrado." });
     res.json({ message: "Insumo deletado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /insumos/clear - limpa todos os registros (temporário)
+app.delete("/insumos/clear", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM insumos");
+    res.json({ message: "Todos os registros foram deletados!" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
