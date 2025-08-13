@@ -1,15 +1,18 @@
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+// database.js
+require("dotenv").config();
+const { Pool } = require("pg");
 
-const DB_PATH = path.resolve(__dirname, "../database.sqlite");
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // Em produção (Render), geralmente precisa de SSL:
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+});
 
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error("Erro ao abrir o banco de dados:", err.message);
-  } else {
-    console.log("Conectado ao banco de dados SQLite.");
-    db.run(
-      `CREATE TABLE IF NOT EXISTS insumos (
+// Cria a tabela se não existir
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS insumos (
         id TEXT PRIMARY KEY,
         dataSolicitacao TEXT,
         dataAprovacao TEXT,
@@ -21,17 +24,13 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         numeroChamado TEXT,
         equipamentoQuantidade TEXT,
         valor REAL
-      )`,
-      (err) => {
-        if (err) {
-          console.error("Erro ao criar a tabela insumos:", err.message);
-        } else {
-          console.log("Tabela 'insumos' criada ou já existe.");
-        }
-      }
-    );
+      );
+    `);
+    console.log("Tabela 'insumos' criada/verificada com sucesso.");
+  } catch (err) {
+    console.error("Erro ao criar/verificar tabela:", err);
+    process.exit(1);
   }
-});
+})();
 
-module.exports = db;
-
+module.exports = pool;

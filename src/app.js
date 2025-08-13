@@ -1,7 +1,8 @@
+// app.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const db = require("./database");
+const pool = require("./database");
 const { v4: uuidv4 } = require("uuid");
 
 const app = express();
@@ -10,19 +11,18 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Rota para obter todos os insumos
-app.get("/insumos", (req, res) => {
-  db.all("SELECT * FROM insumos", [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+// GET /insumos - lista (ordenado pela dataSolicitacao crescente)
+app.get("/insumos", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM insumos ORDER BY dataSolicitacao ASC");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// 🔹 Nova rota para adicionar um único insumo
-app.post("/insumos", (req, res) => {
+// POST /insumos - cria 1 insumo
+app.post("/insumos", async (req, res) => {
   const {
     dataSolicitacao,
     dataAprovacao,
@@ -41,69 +41,57 @@ app.post("/insumos", (req, res) => {
   }
 
   const id = uuidv4();
-  db.run(
-    "INSERT INTO insumos (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor],
-    function (err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.status(201).json({ id, message: "Insumo adicionado com sucesso!" });
-    }
-  );
+  try {
+    await pool.query(
+      `INSERT INTO insumos 
+       (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor]
+    );
+    res.status(201).json({ id, message: "Insumo adicionado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Rota para importar múltiplos insumos
-app.post("/insumos/import", (req, res) => {
-  const insumosToImport = req.body; // Espera um array de insumos
+// POST /insumos/import - importa array de insumos
+app.post("/insumos/import", async (req, res) => {
+  const insumosToImport = req.body;
   if (!Array.isArray(insumosToImport)) {
     return res.status(400).json({ error: "O corpo da requisição deve ser um array de insumos." });
   }
 
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION;");
-    const stmt = db.prepare(
-      "INSERT INTO insumos (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-
-    let importedCount = 0;
+  try {
     for (const insumo of insumosToImport) {
-      const id = insumo.id || uuidv4(); // Usa ID existente ou gera um novo
-      stmt.run(
-        id,
-        insumo.dataSolicitacao,
-        insumo.dataAprovacao,
-        insumo.aprovadoPor,
-        insumo.solicitante,
-        insumo.centroCusto,
-        insumo.equipamento,
-        insumo.status,
-        insumo.numeroChamado,
-        insumo.equipamentoQuantidade,
-        insumo.valor,
-        function (err) {
-          if (err) {
-            console.error("Erro ao importar insumo:", err.message);
-          } else {
-            importedCount++;
-          }
-        }
+      const id = insumo.id || uuidv4();
+      await pool.query(
+        `INSERT INTO insumos 
+         (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          id,
+          insumo.dataSolicitacao,
+          insumo.dataAprovacao,
+          insumo.aprovadoPor,
+          insumo.solicitante,
+          insumo.centroCusto,
+          insumo.equipamento,
+          insumo.status,
+          insumo.numeroChamado,
+          insumo.equipamentoQuantidade,
+          insumo.valor
+        ]
       );
     }
-    stmt.finalize();
-    db.run("COMMIT;", (err) => {
-      if (err) {
-        res.status(500).json({ error: "Erro ao finalizar transação de importação: " + err.message });
-      } else {
-        res.status(200).json({ message: `Importados ${importedCount} insumos com sucesso!` });
-      }
-    });
-  });
+    res.status(200).json({ message: "Importação concluída com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Rota para atualizar um insumo existente
-app.put("/insumos/:id", (req, res) => {
+// PUT /insumos/:id - atualiza
+app.put("/insumos/:id", async (req, res) => {
   const { id } = req.params;
   const {
     dataSolicitacao,
@@ -118,55 +106,30 @@ app.put("/insumos/:id", (req, res) => {
     valor
   } = req.body;
 
-  if (!solicitante || !centroCusto) {
-    return res.status(400).json({ error: "Solicitante e Centro de Custo são obrigatórios." });
+  try {
+    const result = await pool.query(
+      `UPDATE insumos 
+       SET dataSolicitacao=$1, dataAprovacao=$2, aprovadoPor=$3, solicitante=$4, centroCusto=$5, equipamento=$6, status=$7, numeroChamado=$8, equipamentoQuantidade=$9, valor=$10
+       WHERE id=$11`,
+      [dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: "Insumo não encontrado." });
+    res.json({ message: "Insumo atualizado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  const stmt = db.prepare(
-    "UPDATE insumos SET dataSolicitacao = ?, dataAprovacao = ?, aprovadoPor = ?, solicitante = ?, centroCusto = ?, equipamento = ?, status = ?, numeroChamado = ?, equipamentoQuantidade = ?, valor = ? WHERE id = ?"
-  );
-  stmt.run(
-    dataSolicitacao,
-    dataAprovacao,
-    aprovadoPor,
-    solicitante,
-    centroCusto,
-    equipamento,
-    status,
-    numeroChamado,
-    equipamentoQuantidade,
-    valor,
-    id,
-    function (err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      if (this.changes === 0) {
-        res.status(404).json({ message: "Insumo não encontrado." });
-      } else {
-        res.json({ message: "Insumo atualizado com sucesso!" });
-      }
-    }
-  );
-  stmt.finalize();
 });
 
-// Rota para deletar um insumo
-app.delete("/insumos/:id", (req, res) => {
+// DELETE /insumos/:id - remove
+app.delete("/insumos/:id", async (req, res) => {
   const { id } = req.params;
-
-  db.run("DELETE FROM insumos WHERE id = ?", id, function (err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (this.changes === 0) {
-      res.status(404).json({ message: "Insumo não encontrado." });
-    } else {
-      res.json({ message: "Insumo deletado com sucesso!" });
-    }
-  });
+  try {
+    const result = await pool.query("DELETE FROM insumos WHERE id=$1", [id]);
+    if (result.rowCount === 0) return res.status(404).json({ message: "Insumo não encontrado." });
+    res.json({ message: "Insumo deletado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
