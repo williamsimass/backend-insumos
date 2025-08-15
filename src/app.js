@@ -134,6 +134,87 @@ app.delete("/insumos/:id", async (req, res) => {
   }
 });
 
+// ==================== ENDPOINTS FORNECEDORES ====================
+
+// GET /fornecedores
+app.get("/fornecedores", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        nome,
+        descricao,
+        links,
+        dataCriacao AS "dataCriacao",
+        ativo
+      FROM fornecedores 
+      WHERE ativo = true
+      ORDER BY nome ASC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /fornecedores
+app.post("/fornecedores", async (req, res) => {
+  const { nome, descricao, links } = req.body;
+
+  if (!nome) {
+    return res.status(400).json({ error: "Nome do fornecedor é obrigatório." });
+  }
+
+  const id = uuidv4();
+  const dataCriacao = new Date().toISOString().split('T')[0];
+  
+  try {
+    await pool.query(
+      `INSERT INTO fornecedores 
+       (id, nome, descricao, links, dataCriacao, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, nome, descricao, links || [], dataCriacao, true]
+    );
+    res.status(201).json({ id, message: "Fornecedor adicionado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /fornecedores/:id
+app.put("/fornecedores/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nome, descricao, links, ativo } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE fornecedores
+       SET nome=$1, descricao=$2, links=$3, ativo=$4
+       WHERE id=$5`,
+      [nome, descricao, links || [], ativo !== undefined ? ativo : true, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: "Fornecedor não encontrado." });
+    res.json({ message: "Fornecedor atualizado com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /fornecedores/:id (soft delete)
+app.delete("/fornecedores/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      "UPDATE fornecedores SET ativo = false WHERE id=$1", 
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ message: "Fornecedor não encontrado." });
+    res.json({ message: "Fornecedor removido com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor backend rodando na porta ${PORT}`);
 });

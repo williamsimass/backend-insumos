@@ -6,9 +6,10 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
-// Cria a tabela se não existir
+// Cria as tabelas se não existirem
 (async () => {
   try {
+    // Tabela de insumos
     await pool.query(`
       CREATE TABLE IF NOT EXISTS insumos (
         id TEXT PRIMARY KEY,
@@ -25,8 +26,21 @@ const pool = new Pool({
       );
     `);
     console.log("Tabela 'insumos' criada/verificada com sucesso.");
+
+    // Tabela de fornecedores
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS fornecedores (
+        id TEXT PRIMARY KEY,
+        nome TEXT NOT NULL,
+        descricao TEXT,
+        links TEXT[],
+        dataCriacao TEXT,
+        ativo BOOLEAN DEFAULT true
+      );
+    `);
+    console.log("Tabela 'fornecedores' criada/verificada com sucesso.");
   } catch (err) {
-    console.error("Erro ao criar/verificar tabela:", err);
+    console.error("Erro ao criar/verificar tabelas:", err);
     process.exit(1);
   }
 })();
