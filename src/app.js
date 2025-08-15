@@ -82,7 +82,7 @@ app.post("/insumos/import", async (req, res) => {
         `INSERT INTO insumos
          (id, dataSolicitacao, dataAprovacao, aprovadoPor, solicitante, centroCusto, equipamento, status, numeroChamado, equipamentoQuantidade, valor)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-         ON CONFLICT (id) DO NOTHING`,
+         ON CONFLICT (id) DO UPDATE SET dataSolicitacao=EXCLUDED.dataSolicitacao, dataAprovacao=EXCLUDED.dataAprovacao, aprovadoPor=EXCLUDED.aprovadoPor, solicitante=EXCLUDED.solicitante, centroCusto=EXCLUDED.centroCusto, equipamento=EXCLUDED.equipamento, status=EXCLUDED.status, numeroChamado=EXCLUDED.numeroChamado, equipamentoQuantidade=EXCLUDED.equipamentoQuantidade, valor=EXCLUDED.valor`,
         [id, insumo.dataSolicitacao, insumo.dataAprovacao, insumo.aprovadoPor, insumo.solicitante, insumo.centroCusto, insumo.equipamento, insumo.status, insumo.numeroChamado, insumo.equipamentoQuantidade, insumo.valor]
       );
     }
