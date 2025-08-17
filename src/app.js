@@ -122,6 +122,16 @@ app.put("/insumos/:id", async (req, res) => {
   }
 });
 
+// DELETE /insumos/clear-all
+app.delete("/insumos/clear-all", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM insumos");
+    await pool.query("DELETE FROM fornecedores");
+    res.json({ message: "Todos os dados foram removidos com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // DELETE /insumos/:id
 app.delete("/insumos/:id", async (req, res) => {
   const { id } = req.params;
@@ -134,16 +144,7 @@ app.delete("/insumos/:id", async (req, res) => {
   }
 });
 
-// DELETE /insumos/clear-all
-app.delete("/insumos/clear-all", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM insumos");
-    await pool.query("DELETE FROM fornecedores");
-    res.json({ message: "Todos os dados foram removidos com sucesso!" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+
 
 // ==================== ENDPOINTS FORNECEDORES ====================
 
